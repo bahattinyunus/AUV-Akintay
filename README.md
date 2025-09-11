@@ -101,6 +101,16 @@ Boşluklar / entegrasyon eksikleri:
 
 ---
 
+### Simülasyon
+
+- 2D UDP simülatör: `sim/rov2d.py`
+  - Çalıştır: `python sim/rov2d.py`
+  - Vision betiğini UDP ile beslemek için:
+    - `python görüntü işleme/vision_control.py --port COM3 --baud 115200 --speed 60 --udp --show`
+  - Komut formatı: `CMD:F|L|R;SPEED:0..100` (simülatör varsayılan dinleme: `127.0.0.1:5005`)
+
+---
+
 ### Yol haritası (kısa)
 
 - [x] ESP32 ana firmware’i tek dosyada modlu hale getirme (Manuel + Vision + Stabilize + RPi komutları)
@@ -108,6 +118,7 @@ Boşluklar / entegrasyon eksikleri:
 - [ ] Failsafe, arming ve kuru test modlarını standartlaştırma
 - [ ] IMU açı kestirimi için complementary filter ekleme
 - [ ] Derinlik sensörü entegrasyonu (gelecek sprint)
+- [ ] Simülasyon parametrelerinin (sürükleme, hız) kalibrasyonu
 
 ---
 

@@ -15,6 +15,9 @@ def parse_args():
     p.add_argument("--cam", type=int, default=0, help="OpenCV camera index")
     p.add_argument("--center_tol", type=int, default=50, help="Pixel tolerance around image center")
     p.add_argument("--show", action="store_true", help="Show camera frames")
+    p.add_argument("--udp", action="store_true", help="Also send commands via UDP (simulator)")
+    p.add_argument("--udp_host", default="127.0.0.1", help="UDP host for simulator")
+    p.add_argument("--udp_port", type=int, default=5005, help="UDP port for simulator")
     return p.parse_args()
 
 
@@ -26,6 +29,11 @@ def send_cmd(ser, cmd_char, speed):
 
 def main():
     args = parse_args()
+
+    udp_sock = None
+    if args.udp:
+        import socket
+        udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     try:
         ser = serial.Serial(args.port, args.baud, timeout=0.05)
@@ -78,6 +86,9 @@ def main():
             now_ms = int(time.time() * 1000)
             if cmd != last_cmd or (now_ms - last_send_ms) > send_interval_ms:
                 send_cmd(ser, cmd, args.speed)
+                if udp_sock is not None:
+                    pkt = f"CMD:{cmd};SPEED:{args.speed}\n".encode("ascii")
+                    udp_sock.sendto(pkt, (args.udp_host, args.udp_port))
                 last_cmd = cmd
                 last_send_ms = now_ms
 
