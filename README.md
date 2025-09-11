@@ -19,26 +19,13 @@ gibi bileşenler yer alır. Geçen sezon araç batırılamadığı için tam sis
 Teknofest-Akintay/
 ├─ deneyap/
 │  ├─ AKINTAY_Main_Firmware.ino                                   # Birleşik ana firmware (Mod: Manuel/Vision/Stab)
-│  ├─ manuel/
-│  │  ├─ Manuel_Yazilim_esp32_8motor_joystick_kontrol.ino         # 8 ESC manuel miksaj + joystick
-│  │  ├─ deneyap_modlar_manuel-joystick-kontrol-robotu-esp32.ino   # Modülerleştirilmiş sürüm (mod1/mod2)
-│  │  └─ serial_cam_operator/
-│  │     ├─ serial_cam_operator.py                                 # RPi üzerinde PHOTO/VIDEO komutlarını işler
-│  │     ├─ deneyap_joycam_controller.ino                          # (README’de referanslı; depoda boş/eksik)
-│  │     └─ README_AKINTAY.md                                      # Kamera kontrol alt projesi dökümanı
-│  ├─ PID_Kontrol_pid_dengeleme_imu_servo_esp32.ino                # IMU tabanlı roll/pitch PID denemesi
-│  ├─ hız_yon_mesafe/
-│  │  └─ hız_yon_mesafe_hesaplama(deneyapKodu).ino                 # Potansiyometre ile hız/yön örneği
-│  └─ haberleşme/
-│     ├─ Haberlesme_Deneyap_Kodu_ultrasonik-mesafe-sensoru-okuma   # Ultrasonik mesafe sensörü seri çıktı örneği
-│     └─ Haberlesme_Python_Kodu_ultrasonik-mesafe-sensoru-okuma    # Python tarafı okuma örneği
+│  └─ manuel/
+│     ├─ Manuel_Yazilim_esp32_8motor_joystick_kontrol.ino         # 8 ESC manuel miksaj + joystick
+│     └─ serial_cam_operator/
+│        ├─ serial_cam_operator.py                                 # RPi üzerinde PHOTO/VIDEO komutlarını işler
+│        └─ README_AKINTAY.md                                      # Kamera kontrol alt projesi dökümanı
 ├─ görüntü işleme/
-│  ├─ vision_control.py                                            # Vision → ESP32 protokol (CMD:F/L/R; SPEED:x)
-│  ├─ çizgitakip_goruntu-ile-kontrol-edilen-rov.py                 # Vision → ESP32: F/L/R komutları
-│  ├─ cizgi_takip_ve_manuelsurus_rpi.py                            # RPi GPIO ile 2 ESC doğrudan sürüm örneği
-│  └─ (tarih klasörleri + demo betikleri)
-├─ kayip_hazine/                                                   # Ayrı proje/denemeler (Arduino + Python)
-├─ shape_model_final*.keras / *.h5                                 # Görsel sınıflandırma/model denemeleri
+│  └─ vision_control.py                                            # Vision → ESP32 protokol (CMD:F/L/R; SPEED:x)
 └─ README.md
 ```
 
@@ -47,7 +34,7 @@ Teknofest-Akintay/
 ### Mevcut durum — güçlü yanlar ve boşluklar
 
 - **Manuel 8’li miksaj hazır**: `Manuel_Yazilim_esp32_8motor_joystick_kontrol.ino` joystick A0–A3’ten okuyup 1000–2000 µs aralığında 8 ESC’e dağıtıyor. Limitler (`mindeger=1060`, `maxdeger=1940`) tanımlı. Motor tersine çevirme için şartlı yapı örneği bulunuyor.
-- **IMU PID denemesi mevcut**: `PID_Kontrol_pid_dengeleme_imu_servo_esp32.ino` ile LSM6DSL verisinden gyro integrasyonu yapılarak roll/pitch düzeltmesi uygulanmış (temel PID, drift kompanzasyonu sınırlı).
+- **Stabilize modu mevcut**: Ana firmware içinde IMU destekli (deneme düzeyi) stabilizasyon çıkışı miksaj üzerine küçük düzeltme olarak eklenebilir.
 - **Görüntü işleme hattı**: Çizgi/renk temelli yön tahmini yapıp ESP32’ye seri üzerinden basit komutlar (F/L/R) gönderen Python betiği var.
 - **RPi kamera kontrolü**: `serial_cam_operator.py` `PHOTO`/`VIDEO` komutlarıyla foto/video yakalama ve mp4’e dönüştürme akışını sağlıyor.
 
@@ -69,7 +56,7 @@ Boşluklar / entegrasyon eksikleri:
 - Motor mikseri: Mevcut 8’li miksaj korunur; joystick/vision girdileri ile güvenli kaynaştırma, ölü-bölge ve limitler parametrik.
 
 2) **Vision katmanı**:
-- `çizgitakip_goruntu-ile-kontrol-edilen-rov.py` sadeleştirilip port/baud/speed parametreleri CLI argümanlarıyla verilir. Protokol satırı net: `b"CMD:F;SPEED:60\n"` gibi.
+- `görüntü işleme/vision_control.py` parametreli betik ile `CMD:F/L/R;SPEED:x` komutlarını üretir.
 
 3) **RPi kamera**:
 - `serial_cam_operator.py` korunur. ESP32 firmware’i butonlardan `PHOTO`/`VIDEO` yazıp RPi’den geri bildirim (`*_OK`) loglar.
@@ -104,9 +91,8 @@ Boşluklar / entegrasyon eksikleri:
   - ESC takılırsa önce düşük hız sınırlarıyla emniyetli deneme yapılır.
 
 - **Vision → ESP32**
-  - Önerilen: `görüntü işleme/vision_control.py` kullanın:
+  - `görüntü işleme/vision_control.py` kullanın:
     - Örnek: `python vision_control.py --port COM3 --baud 115200 --speed 60 --show`
-  - Alternatif: `çizgitakip_goruntu-ile-kontrol-edilen-rov.py` (eski basit F/L/R gönderen sürüm).
 
 - **RPi kamera**
   - Raspberry Pi’de `serial_cam_operator.py` çalıştırılır. ESP32’den `PHOTO`/`VIDEO` komutları geldiğinde kayıt yapılır.
@@ -128,6 +114,7 @@ Boşluklar / entegrasyon eksikleri:
 - **Yeni**: `deneyap/AKINTAY_Main_Firmware.ino` (mod: Manuel/Vision/Stab, failsafe, RPi komutları)
 - **Yeni**: `görüntü işleme/vision_control.py` (argümanlı, `CMD:…;SPEED:…` protokolü)
 - **Güncellendi**: README — yapı, kullanım, protokol ve yol haritası genişletildi.
+- **Temizlik**: Eski demo klasörleri, yardımcı örnekler ve büyük model dosyaları kaldırıldı; depo sadeleştirildi.
 
 > Not: Firmware ve vision betiği eklendi; istenirse derinlik sensörü ve IMU füzyonu bir sonraki adımda entegre edilir.
 
