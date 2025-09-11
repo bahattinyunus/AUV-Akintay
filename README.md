@@ -1,5 +1,7 @@
 ## AKINTAY — ROV Yazılım Deposu (Özet, Durum, Plan)
 
+[![CI](https://github.com/bahattinyunus/AUV-Akintay/actions/workflows/ci.yml/badge.svg)](https://github.com/bahattinyunus/AUV-Akintay/actions/workflows/ci.yml)
+
 ### Proje özeti
 
 AKINTAY, Deneyap/ESP32 tabanlı 8 ESC’li bir ROV platformu için geliştirilen kontrol ve algılama yazılımlarından oluşur. Depoda;
@@ -124,5 +126,7 @@ Boşluklar / entegrasyon eksikleri:
 
 - Geliştirici: Bahattin Yunus Çetin
 - Proje: AKINTAY — Akıllı Kontrollü İnteraktif Tabanlı Aygıt Yönetimi
+
+Daha fazla ayrıntı için CHANGELOG: `CHANGELOG.md`
 
 
