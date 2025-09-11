@@ -38,6 +38,7 @@ float rollErr = 0.0f, pitchErr = 0.0f;
 float rollInt = 0.0f, pitchInt = 0.0f;
 float rollLastErr = 0.0f, pitchLastErr = 0.0f;
 unsigned long lastImuMs = 0;
+const float complementaryAlpha = 0.98f; // gyro weight
 
 // Motor mixing
 Servo m[8];
@@ -169,10 +170,18 @@ void mixAndWriteMotors(bool applyAssist) {
     if (dt <= 0.0f) dt = 0.01f;
     lastImuMs = nowMs;
 
-    float gx, gy;
-    if (IMU.readGyroscope(gx, gy, nullptr)) {
-      actualPitch += gx * dt;
-      actualRoll  += gy * dt;
+    float gx, gy, gz;
+    float ax, ay, az;
+    bool gotGyro = IMU.readGyroscope(gx, gy, &gz);
+    bool gotAcc  = IMU.readAcceleration(ax, ay, az);
+    if (gotGyro && gotAcc) {
+      // Gyro integration (deg/s assumed) and accelerometer angle (degrees)
+      float gyroPitch = actualPitch + gx * dt;
+      float gyroRoll  = actualRoll  + gy * dt;
+      float accPitch = atan2f(ax, sqrtf(ay * ay + az * az)) * 180.0f / PI;
+      float accRoll  = atan2f(ay, sqrtf(ax * ax + az * az)) * 180.0f / PI;
+      actualPitch = complementaryAlpha * gyroPitch + (1.0f - complementaryAlpha) * accPitch;
+      actualRoll  = complementaryAlpha * gyroRoll  + (1.0f - complementaryAlpha) * accRoll;
 
       pitchErr = pitchSetpoint - actualPitch;
       rollErr  = rollSetpoint  - actualRoll;
