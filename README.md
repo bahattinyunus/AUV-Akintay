@@ -110,12 +110,12 @@ Boşluklar / entegrasyon eksikleri:
   - Klavye kontrolleri (keyboard açıkken): `W/A/D` sürüş, `S` dur, `+/-` hız, `q` çıkış
   - Vision betiğini UDP ile beslemek için:
     - `python "görüntü işleme/vision_control.py" --port COM3 --baud 115200 --speed 60 --udp --show`
-  - Komut formatı: `CMD:F|L|R;SPEED:0..100` (varsayılan dinleme: `127.0.0.1:5005`)
-  - Telemetri (opsiyonel): `POSE:x,y,heading_deg` UDP ile `127.0.0.1:5006`
+  - Komut formatı: `CMD:F|L|R;SPEED:0..100` ve `VEL:surge,sway,heave,yaw` (-100..100) | varsayılan dinleme `127.0.0.1:5005`
+  - Telemetri (opsiyonel): JSON `{pos{x,y,z}, vel{x,y,z}, yaw_deg, cmd, speed, vel_cmd}` UDP `127.0.0.1:5006`
 
 - Basit sim GUI: `sim/sim_gui.py`
   - Başlat: `python sim/sim_gui.py`
-  - Port ayarla (varsayılan 5007), Start → yön butonlarıyla komut gönder, hız slider’ı ile hız değiştir, altta telemetri görünür.
+  - Port ayarla (varsayılan 5007), Start → yön butonları veya VEL slider’larıyla komut gönder, hız slider’ı ile CMD hızını değiştir, altta telemetri görünür.
 
 ---
 

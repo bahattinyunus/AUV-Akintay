@@ -58,6 +58,23 @@ class SimGUI:
         self.sl.set(60)
         self.sl.grid(row=1, column=1, columnspan=3, sticky="ew")
 
+        # VEL sliders
+        vel = Frame(root)
+        vel.pack(padx=8, pady=6)
+        Label(vel, text="VEL Surge").grid(row=0, column=0)
+        self.surge = Scale(vel, from_=-100, to=100, orient=HORIZONTAL, length=300)
+        self.surge.set(0); self.surge.grid(row=0, column=1)
+        Label(vel, text="VEL Sway").grid(row=1, column=0)
+        self.sway = Scale(vel, from_=-100, to=100, orient=HORIZONTAL, length=300)
+        self.sway.set(0); self.sway.grid(row=1, column=1)
+        Label(vel, text="VEL Heave").grid(row=2, column=0)
+        self.heave = Scale(vel, from_=-100, to=100, orient=HORIZONTAL, length=300)
+        self.heave.set(0); self.heave.grid(row=2, column=1)
+        Label(vel, text="VEL Yaw").grid(row=3, column=0)
+        self.yaw = Scale(vel, from_=-100, to=100, orient=HORIZONTAL, length=300)
+        self.yaw.set(0); self.yaw.grid(row=3, column=1)
+        Button(vel, text="Send VEL", command=self.send_vel).grid(row=4, column=1, sticky="e")
+
         btns = Frame(root)
         btns.pack(padx=8, pady=6)
 
@@ -115,6 +132,15 @@ class SimGUI:
             port = 5007
         spd = int(self.sl.get())
         msg = f"CMD:{c};SPEED:{spd}\n".encode("ascii")
+        self.udp.sendto(msg, ("127.0.0.1", port))
+
+    def send_vel(self):
+        try:
+            port = int(self.listen_port.get())
+        except Exception:
+            port = 5007
+        vals = (self.surge.get(), self.sway.get(), self.heave.get(), self.yaw.get())
+        msg = f"VEL:{vals[0]},{vals[1]},{vals[2]},{vals[3]}\n".encode("ascii")
         self.udp.sendto(msg, ("127.0.0.1", port))
 
 

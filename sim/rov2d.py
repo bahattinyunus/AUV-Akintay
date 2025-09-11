@@ -58,6 +58,23 @@ def parse_cmd(line: str):
     return cmd_char, max(0, min(100, speed))
 
 
+def parse_vel(line: str):
+    # Expected: VEL:surge,sway,heave,yaw  each in -100..100
+    if not line or not line.startswith("VEL:"):
+        return None
+    vals = line.split(":", 1)[1]
+    parts = vals.split(",")
+    if len(parts) != 4:
+        return None
+    try:
+        surge = int(parts[0]); sway = int(parts[1]); heave = int(parts[2]); yaw = int(parts[3])
+        def clamp100(v):
+            return max(-100, min(100, v))
+        return [clamp100(surge), clamp100(sway), clamp100(heave), clamp100(yaw)]
+    except Exception:
+        return None
+
+
 def draw_arrow(img, x, y, angle, length=50, color=(0, 255, 0), thickness=2):
     end_x = int(x + length * math.cos(angle))
     end_y = int(y + length * math.sin(angle))
@@ -93,16 +110,23 @@ def main():
     vel = np.zeros(2, dtype=float)
     heading = -math.pi / 2  # up
     yaw_rate = 0.0
+    depth = 0.0  # positive down (m, abstract)
+    vdepth = 0.0
 
     # Parameters
-    max_fwd_acc = float(args.max_acc)  # px/s^2 at speed=100
+    max_fwd_acc = float(args.max_acc)  # px/s^2 at speed=100 (surge)
     max_yaw_rate = math.radians(float(args.max_yaw))  # rad/s at speed=100
-    lin_drag = float(args.lin_drag)  # per second
+    lin_drag = float(args.lin_drag)  # per second (xy)
     yaw_drag = float(args.yaw_drag)  # per second
+    sway_acc_ratio = 0.8  # sway slightly weaker than surge
+    heave_acc_ratio = 0.6  # vertical weaker
+    depth_drag = 0.8
+    buoyancy_bias = 0.0  # 0 neutral, >0 sinks, <0 floats
 
     last_cmd = "(none)"
     last_speed = 60  # default keyboard speed
     last_time = time.time()
+    last_vel_cmd = [0, 0, 0, 0]
 
     # Trail
     trail = deque(maxlen=500)
@@ -133,10 +157,16 @@ def main():
             # Handle incoming command
             line = server.get_latest()
             if line:
-                c, s = parse_cmd(line)
-                if c is not None:
-                    last_cmd = c
-                    last_speed = s
+                v = parse_vel(line)
+                if v is not None:
+                    last_vel_cmd = v
+                    last_cmd = '(VEL)'
+                else:
+                    c, s = parse_cmd(line)
+                    if c is not None:
+                        last_cmd = c
+                        last_speed = s
+                        last_vel_cmd = [0, 0, 0, 0]
 
             # Keyboard override (if enabled)
             key = cv2.waitKey(1) & 0xFF
@@ -156,27 +186,44 @@ def main():
                 elif key == ord('q'):
                     break
 
-            # Compute control inputs
+            # Compute control inputs from either VEL or discrete CMD
             fwd_acc = 0.0
+            sway_acc = 0.0
+            heave_acc = 0.0
             yaw_input = 0.0
-            if last_cmd == 'F':
-                fwd_acc = (last_speed / 100.0) * max_fwd_acc
-            elif last_cmd == 'L':
-                yaw_input = -(last_speed / 100.0) * max_yaw_rate
-            elif last_cmd == 'R':
-                yaw_input = (last_speed / 100.0) * max_yaw_rate
+            if any(last_vel_cmd):
+                surge, sway, heave, yaw = last_vel_cmd
+                fwd_acc = (surge / 100.0) * max_fwd_acc
+                sway_acc = (sway / 100.0) * max_fwd_acc * sway_acc_ratio
+                heave_acc = (heave / 100.0) * max_fwd_acc * heave_acc_ratio
+                yaw_input = (yaw / 100.0) * max_yaw_rate
             else:
-                # 'S' or None → no thrust
-                pass
+                if last_cmd == 'F':
+                    fwd_acc = (last_speed / 100.0) * max_fwd_acc
+                elif last_cmd == 'L':
+                    yaw_input = -(last_speed / 100.0) * max_yaw_rate
+                elif last_cmd == 'R':
+                    yaw_input = (last_speed / 100.0) * max_yaw_rate
+                else:
+                    # 'S' or None → no thrust
+                    pass
 
             # Update yaw/heading
             yaw_rate += (yaw_input - yaw_drag * yaw_rate) * dt
             heading += yaw_rate * dt
 
-            # Forward acceleration in world frame
-            acc_world = np.array([math.cos(heading), math.sin(heading)]) * fwd_acc
+            # Accelerations in world frame (surge + sway)
+            forward = np.array([math.cos(heading), math.sin(heading)])
+            left = np.array([-math.sin(heading), math.cos(heading)])
+            acc_world = forward * fwd_acc + left * sway_acc
             vel += (acc_world - lin_drag * vel) * dt
             pos += vel * dt
+
+            # Vertical (depth)
+            vdepth += (heave_acc + buoyancy_bias - depth_drag * vdepth) * dt
+            depth += vdepth * dt
+            if depth < 0:
+                depth = 0; vdepth = 0
 
             # Boundaries wrap-around
             if pos[0] < 0: pos[0] += width
@@ -213,8 +260,8 @@ def main():
             draw_arrow(img, pos[0], pos[1], heading, 60, (0, 255, 0), 2)
 
             hud = [
-                f"CMD: {last_cmd}  SPEED: {last_speed}",
-                f"POS: ({pos[0]:.1f}, {pos[1]:.1f})  V: ({vel[0]:.1f},{vel[1]:.1f})",
+                f"CMD: {last_cmd}  SPEED: {last_speed}  VEL:{last_vel_cmd}",
+                f"POS: ({pos[0]:.1f}, {pos[1]:.1f})  V: ({vel[0]:.1f},{vel[1]:.1f})  DEPTH:{depth:.2f} vZ:{vdepth:.2f}",
                 f"HDG: {math.degrees(heading)%360:.1f} deg  YawRate: {math.degrees(yaw_rate):.1f} deg/s",
                 f"Listen UDP {args.listen_host}:{args.listen_port}  |  Press 'q' to quit",
                 f"Keys: W/A/D drive, S stop, +/- speed  |  trail={args.trail} obstacles={bool(obstacles)}",
@@ -226,9 +273,18 @@ def main():
 
             cv2.imshow("AKINTAY ROV 2D SIM", img)
 
-            # Telemetry
+            # Telemetry (JSON)
             if tele_sock is not None:
-                msg = f"POSE:{pos[0]:.2f},{pos[1]:.2f},{math.degrees(heading)%360:.2f}\n".encode("ascii")
+                import json
+                tele = {
+                    "pos": {"x": float(pos[0]), "y": float(pos[1]), "z": float(depth)},
+                    "vel": {"x": float(vel[0]), "y": float(vel[1]), "z": float(vdepth)},
+                    "yaw_deg": float((math.degrees(heading) % 360.0)),
+                    "cmd": last_cmd,
+                    "speed": int(last_speed),
+                    "vel_cmd": list(map(int, last_vel_cmd)),
+                }
+                msg = (json.dumps(tele) + "\n").encode("ascii")
                 tele_sock.sendto(msg, tele_addr)
 
     finally:
