@@ -1,3 +1,4 @@
+
 ## AKINTAY — ROV Yazılım Deposu (Özet, Durum, Plan)
 
 [![CI](https://github.com/bahattinyunus/AUV-Akintay/actions/workflows/ci.yml/badge.svg)](https://github.com/bahattinyunus/AUV-Akintay/actions/workflows/ci.yml)
@@ -119,6 +120,17 @@ Boşluklar / entegrasyon eksikleri:
 
 ---
 
+### İTÜ Gazebo Sim (ROS + Gazebo)
+
+- Depo: `auv-software`
+- Hızlı kurulum rehberi: `docs/itu_gazebo_setup.md`
+- Windows PowerShell (Docker):
+  - Derle: `scripts\itu_sim_docker_build.ps1`
+  - Çalıştır: `scripts\itu_sim_docker_run.ps1` (varsayılan dünya: `pool`)
+- WSL2 Ubuntu:
+  - `scripts/itu_sim_wsl.sh pool`
+
+---
 ### Yol haritası (kısa)
 
 - [x] ESP32 ana firmware’i tek dosyada modlu hale getirme (Manuel + Vision + Stabilize + RPi komutları)
