@@ -104,10 +104,18 @@ Boşluklar / entegrasyon eksikleri:
 ### Simülasyon
 
 - 2D UDP simülatör: `sim/rov2d.py`
-  - Çalıştır: `python sim/rov2d.py`
+  - Çalıştır (opsiyonlar):
+    - `python sim/rov2d.py --keyboard --trail --obstacles --telemetry`
+    - Parametreler: `--width/--height`, `--max_acc`, `--max_yaw`, `--lin_drag`, `--yaw_drag`, `--listen_host/--listen_port`, `--telemetry_host/--telemetry_port`
+  - Klavye kontrolleri (keyboard açıkken): `W/A/D` sürüş, `S` dur, `+/-` hız, `q` çıkış
   - Vision betiğini UDP ile beslemek için:
-    - `python görüntü işleme/vision_control.py --port COM3 --baud 115200 --speed 60 --udp --show`
-  - Komut formatı: `CMD:F|L|R;SPEED:0..100` (simülatör varsayılan dinleme: `127.0.0.1:5005`)
+    - `python "görüntü işleme/vision_control.py" --port COM3 --baud 115200 --speed 60 --udp --show`
+  - Komut formatı: `CMD:F|L|R;SPEED:0..100` (varsayılan dinleme: `127.0.0.1:5005`)
+  - Telemetri (opsiyonel): `POSE:x,y,heading_deg` UDP ile `127.0.0.1:5006`
+
+- Basit sim GUI: `sim/sim_gui.py`
+  - Başlat: `python sim/sim_gui.py`
+  - Port ayarla (varsayılan 5007), Start → yön butonlarıyla komut gönder, hız slider’ı ile hız değiştir, altta telemetri görünür.
 
 ---
 

@@ -13,12 +13,15 @@ static const int PIN_BUTTON_PHOTO = D9;
 static const int PIN_BUTTON_VIDEO = D0;
 
 // Modes
-enum ControlMode { MODE_MANUAL = 0, MODE_VISION = 1, MODE_STABILIZE = 2 };
+enum ControlMode { MODE_MANUAL = 0, MODE_VISION = 1, MODE_STABILIZE = 2, MODE_VEL = 3 };
 volatile ControlMode currentMode = MODE_MANUAL;
 
 // Vision command
 char visionCmd = 'S';  // F/L/R/S (S = stop)
 int  visionSpeed = 0;  // 0..100
+
+// Velocity command (surge,sway,heave,yaw) in -100..100 domain
+int velSurge = 0, velSway = 0, velHeave = 0, velYaw = 0;
 
 // Joystick inputs mapped to 1000..2000us domain
 float X1_us = PWM_MID_US, Y1_us = PWM_MID_US, X2_us = PWM_MID_US, Y2_us = PWM_MID_US;
@@ -124,6 +127,22 @@ void computeVisionSticks() {
   }
 }
 
+void computeVelSticks() {
+  // Map VEL (surge, yaw) primarily; sway/heave reserved for future
+  // Inputs are -100..100; map to +/-300us deltas
+  int dSurge = map(abs(velSurge), 0, 100, 0, 300);
+  if (velSurge < 0) dSurge = -dSurge;
+  int dYaw = map(abs(velYaw), 0, 100, 0, 300);
+  if (velYaw < 0) dYaw = -dYaw;
+
+  X1_us = PWM_MID_US + dYaw;   // left/right turn maps to X axes
+  X2_us = PWM_MID_US + dYaw;
+  Y1_us = PWM_MID_US + dSurge; // forward/back maps to Y axes
+  Y2_us = PWM_MID_US + dSurge;
+
+  // Sway/heave (future): could be mixed via X1/X2 asymmetry or separate vertical thrusters
+}
+
 void mixAndWriteMotors(bool applyAssist) {
   int onsagust_deger = 1500 - (X1_us - 1500) - (X2_us - 1500) + (Y2_us - 1500) + (Y1_us - 1500);
   int onsolust_deger = 1500 + (X1_us - 1500) + (X2_us - 1500) + (Y2_us - 1500) + (Y1_us - 1500);
@@ -202,13 +221,15 @@ void parseSerialLine(const String& line) {
   // MODE:MANUAL
   // MODE:VISION
   // MODE:STAB
+  // MODE:VEL
   // CMD:F;SPEED:60
-  // VEL:10,0,0,15    (reserved for future)
+  // VEL:10,0,0,15
 
   if (line.startsWith("MODE:")) {
     if (line.indexOf("MANUAL") > 0)      currentMode = MODE_MANUAL;
     else if (line.indexOf("VISION") > 0) currentMode = MODE_VISION;
     else if (line.indexOf("STAB") > 0)   currentMode = MODE_STABILIZE;
+    else if (line.indexOf("VEL") > 0)    currentMode = MODE_VEL;
     return;
   }
 
@@ -228,6 +249,27 @@ void parseSerialLine(const String& line) {
       visionSpeed = spd;
     }
     lastCmdMs = millis();
+    return;
+  }
+
+  if (first.startsWith("VEL:")) {
+    // Format: VEL:surge,sway,heave,yaw  (each -100..100)
+    int c = first.indexOf(':');
+    String vals = first.substring(c + 1);
+    int p1 = vals.indexOf(',');
+    int p2 = vals.indexOf(',', p1 + 1);
+    int p3 = vals.indexOf(',', p2 + 1);
+    if (p1 > 0 && p2 > p1 && p3 > p2) {
+      velSurge = vals.substring(0, p1).toInt();
+      velSway  = vals.substring(p1 + 1, p2).toInt();
+      velHeave = vals.substring(p2 + 1, p3).toInt();
+      velYaw   = vals.substring(p3 + 1).toInt();
+      if (velSurge < -100) velSurge = -100; if (velSurge > 100) velSurge = 100;
+      if (velSway  < -100) velSway  = -100; if (velSway  > 100) velSway  = 100;
+      if (velHeave < -100) velHeave = -100; if (velHeave > 100) velHeave = 100;
+      if (velYaw   < -100) velYaw   = -100; if (velYaw   > 100) velYaw   = 100;
+      lastCmdMs = millis();
+    }
   }
 }
 
@@ -280,6 +322,9 @@ void loop() {
   } else if (currentMode == MODE_VISION) {
     if (timedOut) { visionCmd = 'S'; visionSpeed = 0; }
     computeVisionSticks();
+  } else if (currentMode == MODE_VEL) {
+    if (timedOut) { velSurge = velSway = velHeave = velYaw = 0; }
+    computeVelSticks();
   } else if (currentMode == MODE_STABILIZE) {
     readJoystickManual();
   }
