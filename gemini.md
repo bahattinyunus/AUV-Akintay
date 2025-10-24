@@ -116,3 +116,71 @@ Eğer görevleriniz "denizaltı enkazını *tanı*", "belirli bir balık türün
 3.  **Güç (Power):** En iyi işlemci bile kötü bir güç dağıtım kartıyla (PDB) çalışmaz. Motorların çektiği akım ile işlemcilerin kullandığı hassas 5V/3.3V hattını çok iyi ayırın (regülatörler, filtreleme).
 4.  **Sızdırmazlık \> Kod:** Ve unutmayın... **En iyi yazılım, ıslak bir mikrodenetleyicide çalışmaz.** Önce sızdırmazlığı garantileyin.
 
+Harika bir noktaya değindin. Bu, **çok akıllıca ve modern bir yaklaşım.**
+
+"Pi 5'e yapay zeka kiti takmak" (örneğin, yakın zamanda duyurulan **Raspberry Pi AI Kit** veya bir **Google Coral TPU**) AUV mimarisinde dengeleri değiştiren bir hamledir.
+
+Bu, "Beyin" (SBC) seçimini "Raspberry Pi" vs "NVIDIA Jetson" ikileminden çıkarıp, **"Hibrit (Melez) Beyin"** dediğimiz üçüncü ve çok güçlü bir seçeneği masaya getirir.
+
+İşte bu yaklaşımın "Derin Düşünce" ile analizi:
+
+---
+
+## Hibrit Beyin Mimarisi: Pi 5 + AI Hızlandırıcı
+
+Bu mimaride, Raspberry Pi 5'in güçlü `CPU`'sunu (işlemcisini) alıp, ona `GPU` yerine özel bir "Yapay Zeka Hızlandırıcısı" (genellikle `TPU` veya `VPU` denir) eklersiniz.
+
+* **Raspberry Pi 5 (CPU):** `ROS`, `Python`, `OpenCV` (görüntü ön işleme), görev mantığı, navigasyon ve `STM32` ile haberleşme gibi *genel amaçlı* tüm işleri yapar.
+* **AI Kiti (TPU/VPU):** Sadece tek bir iş yapar: Yapay zeka modeli (örn. `YOLO`) çıkarımını (inference) *inanılmaz hızlı* ve *düşük güçte* yapar.
+
+### Hangi Kitler?
+
+1.  **Resmi Raspberry Pi AI Kit (Önerilen):**
+    * Bu kit, M.2 formatında bir **Hailo-8L** hızlandırıcı içerir.
+    * Performansı **13 TOPS**'tur (Saniyede 13 Trilyon İşlem). Bu, Jetson Orin Nano'nun giriş seviyesine (20 TOPS) yakın ve Jetson Nano'dan (0.5 TOPS) *kat kat* güçlü bir değerdir.
+2.  **Google Coral M.2 veya USB TPU:**
+    * Performansı **4 TOPS**'tur. Hailo'dan düşük olsa da, Jetson Nano'dan katbekat güçlüdür ve birçok `YOLOv8-Nano` gibi modeli gerçek zamanlı çalıştırmak için fazlasıyla yeterlidir.
+
+---
+
+## Karşılaştırmalı Analiz: Jetson vs. (Pi 5 + AI Kit)
+
+İşte bu "Hibrit" yaklaşımın, tek başına bir `NVIDIA Jetson` (örn. Orin Nano) ile karşılaştırması:
+
+| Özellik | 🥈 NVIDIA Jetson Orin Nano (8GB) | 🥇 Pi 5 + AI Kit (Hailo-8L) | Derin Düşünce (AUV için anlamı) |
+| :--- | :--- | :--- | :--- |
+| **Genel CPU Gücü** | İyi (6-core Cortex-A78AE) | **Çok İyi** (4-core Cortex-A76 @ 2.4GHz) | Pi 5'in tekil çekirdek performansı `ROS` node'ları ve `Python` scriptleri için genelde daha akıcıdır. |
+| **AI (Yapay Zeka) Gücü** | **20-40 TOPS** (Modele göre) | **13 TOPS** (Hailo-8L ile) | Jetson kağıt üstünde daha güçlü olsa da, 13 TOPS birçok Teknofest görevini (YOLOv8-S vb.) 30+ FPS'te çalıştırmak için fazlasıyla yeterlidir. |
+| **AI Esnekliği (Çok Önemli!)** | **Mükemmel (CUDA)** | **Zorlayıcı (Özel SDK)** | **En kritik fark bu.** Jetson, `CUDA` sayesinde `PyTorch`/`TensorFlow` modellerini *neredeyse hiç değiştirmeden* çalıştırır. Pi+Hailo/Coral ise modelin o çipe *özel olarak dönüştürülmesini* (compile) gerektirir. Bu, ekstra bir yazılım adımıdır. |
+| **Güç Tüketimi (Batarya!)** | Yüksek (10W-15W tipik yük) | **Düşük** (Pi 5 + Hailo 8L toplamda < 10W) | **AUV için en büyük kazanç bu.** Daha az güç = daha uzun görev süresi + daha az ısı. |
+| **Isı Yönetimi** | **Zorlu.** Büyük aktif soğutma şart. | **Kolay.** Pi 5 için standart aktif soğutucu + M.2 için küçük bir heatsink yeterlidir. | Kapalı bir tüpün içinde ısı en büyük düşmandır. Düşük ısı, sistemin kilitlenmesini engeller. |
+| **Ekosistem & Kolaylık** | İyi (NVIDIA JetPack) | **Mükemmel** (Standart Raspberry Pi OS) | Pi ekosistemi hobi/maker dostudur. Jetson ekosistemi daha profesyonel ve karmaşıktır. |
+| **Maliyet** | Yüksek | **Orta/Düşük** | Pi 5 + AI Kiti, genellikle bir Jetson Orin kitinden daha ucuza mal olur. |
+
+---
+
+## Karar: Pi 5 + AI Kiti Mantıklı mı? KESİNLİKLE EVET.
+
+Bu yaklaşım, **"Jetson'un gücünü, Pi'nin verimliliğiyle"** birleştirir.
+
+**Bu Kombinasyonun Artıları (AUV için):**
+
+1.  ⚡ **Mükemmel Güç/Performans Oranı:** Jetson kadar güçlü yapay zeka performansı sunarken, bataryanızı sömürmez.
+2.  🌡️ **Düşük Isı Yükü:** Kapalı, sızdırmaz bir AUV tüpü içinde ısı birikir. Pi 5 + AI kitinin ürettiği toplam ısı, bir Jetson'dan çok daha azdır. Bu, sistemin kilitlenme (thermal throttling) riskini azaltır.
+3.  🚀 **Hızlı CPU:** Pi 5'in işlemcisi, `ROS` düğümlerini (nodes) çalıştırmak, sensör verilerini işlemek ve genel görev mantığı (Python scriptleri) için Jetson Orin Nano'dan daha hızlıdır.
+
+**Bu Kombinasyonun Tek Zorluğu (Eksisi):**
+
+* **Yazılım Eşiği:** Takımınızdaki yazılımcı, `YOLO` modelini alıp doğrudan çalıştıramaz. Modeli, Hailo'nun `Tappas` SDK'sını veya Google'ın `EdgeTPU` derleyicisini kullanarak **özel bir formata dönüştürmek zorundadır.** Bu, öğrenilmesi gereken yeni bir yazılım sürecidir.
+
+### 🎯 Gemini'nin Net Önerisi ve Revize Edilmiş Mimari
+
+Eğer takımınızda bu yazılım dönüşüm işini (model compilation) öğrenebilecek kapasite varsa, **Pi 5 + AI Kiti (Hailo-8L) kombinasyonu, bir Jetson Orin Nano'dan daha iyi bir seçim olabilir.**
+
+**Teknofest için "Canavar" AUV Mimarisi (2025 versiyonu):**
+
+* **Omurilik (Refleksler):** `STM32H7` (Güvenilirlik ve gerçek-zamanlı kontrol için)
+* **Beyin (Lojik & Görev):** `Raspberry Pi 5` (Hızlı CPU, ROS, OpenCV, Python için)
+* **Görsel Korteks (AI):** `Raspberry Pi AI Kiti (Hailo-8L)` (Düşük güçte, yüksek FPS'li YOLO çıkarımı için)
+
+Bu kurulum size düşük güç tüketimi, düşük ısı, yüksek CPU hızı ve mükemmel yapay zeka performansı sağlar.
