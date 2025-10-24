@@ -1,6 +1,4 @@
-Harika bir fikir. Metni markdown formatının avantajlarını (tablolar, kod blokları, vurgular ve emojiler) daha iyi kullanarak görsel olarak daha çekici ve okunabilir hale getirelim.
 
-***
 
 # 🌊 AUV için Mikrodenetleyici & Sistem Tasarım Rehberi (Teknofest Odaklı) 🤖
 
