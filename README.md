@@ -16,6 +16,11 @@ gibi bileşenler yer alır. Geçen sezon araç batırılamadığı için tam sis
 
 ---
 
+## Quick start
+
+Kısa ve hızlı başlamak için adımlar ve örnek komutlar `QUICKSTART.md` içinde toplandı. Yeni başlayanlar veya hızlı testi yapmak isteyenler önce o dosyaya bakmalıdır.
+
+
 ### Depo yapısı (yüksek seviye)
 
 ```
