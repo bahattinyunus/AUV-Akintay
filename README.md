@@ -1,5 +1,5 @@
 
-## AKINTAY — ROV Yazılım Deposu (Özet, Durum, Plan)
+## AUV Yazılım Deposu (Özet, Durum, Plan)
 
 [![CI](https://github.com/bahattinyunus/AUV-Akintay/actions/workflows/ci.yml/badge.svg)](https://github.com/bahattinyunus/AUV-Akintay/actions/workflows/ci.yml)
 
